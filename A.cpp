@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <algorithm>
 using namespace std;
 
 int main()
@@ -12,7 +13,7 @@ int main()
 
     vector<vector<int>> P(L, vector<int>(L));
     for (int i=0; i<N; i++)
-        P[Y[i]][X[i]] = i*10;
+        P[Y[i]][X[i]] = 1000*i/(N-1);
 
     for (int y=0; y<L; y++)
     {
@@ -24,9 +25,17 @@ int main()
     vector<int> E(N);
     for (int i=0; i<N; i++)
     {
-        cout<<i<<" "<<0<<" "<<0<<endl;
-        int t;
-        cin>>t;
+        vector<int> T;
+        for (int j=0; j<99; j++)
+        {
+            cout<<i<<" "<<0<<" "<<0<<endl;
+            int t;
+            cin>>t;
+            T.push_back(t);
+        }
+        sort(T.begin(), T.end());
+        int t = T[49];
+
         int m = 9999;
         for (int j=0; j<N; j++)
         {
