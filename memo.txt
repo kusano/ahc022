@@ -1,0 +1,1 @@
+g++ -O2 -std=c++17 ../A.cpp -o ../A && cargo run --release --bin tester ../A < in/0000.txt > ../out/0000.txt
