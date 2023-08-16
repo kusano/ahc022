@@ -7,13 +7,41 @@ int main()
 {
     int L, N, S;
     cin>>L>>N>>S;
+    cerr<<L<<" "<<N<<" "<<S<<endl;
     vector<int> X(N), Y(N);
     for (int i=0; i<N; i++)
         cin>>Y[i]>>X[i];
 
-    vector<vector<int>> P(L, vector<int>(L));
+    vector<int> I;
+    for (int i=0; i<N/2; i++)
+    {
+        I.push_back(i);
+        I.push_back(N-i-1);
+    }
+    if (N%2!=0)
+        I.push_back(N/2);
+
+    vector<vector<int>> P(L, vector<int>(L, 500));
+    vector<vector<bool>> PF(L, vector<bool>(L));
     for (int i=0; i<N; i++)
-        P[Y[i]][X[i]] = 1000*i/(N-1);
+    {
+        P[Y[I[i]]][X[I[i]]] = 1000*i/(N-1);
+        PF[Y[I[i]]][X[I[i]]] = true;
+    }
+
+    for (int i=0; i<100; i++)
+    {
+        vector<vector<int>> T = P;
+        for (int y=0; y<L; y++)
+            for (int x=0; x<L; x++)
+                if (PF[y][x])
+                    P[y][x] = T[y][x];
+                else
+                {
+                    int s = (T[(y+L-1)%L][x] + T[(y+1)%L][x] + T[y][(x+L-1)%L] + T[y][(x+1)%L]+2)/4;
+                    P[y][x] = s;
+                }
+    }
 
     for (int y=0; y<L; y++)
     {
