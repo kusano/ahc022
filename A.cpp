@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <set>
+#include <map>
 using namespace std;
 
 int xor64() {
@@ -43,23 +44,38 @@ int main()
         DX.push_back(dx);
         DY.push_back(dy);
 
+        map<vector<int>, vector<int>> M;
+        for (int i=0; i<N; i++)
+            M[EI[i]] = vector<int>(2);
+
         for (int i=0; i<N; i++)
         {
             int tx = (X[i]+dx+L)%L;
             int ty = (Y[i]+dy+L)%L;
-            int b = -1;
+            if (PP[ty][tx]!=-1)
+                M[EI[i]][PP[ty][tx]]++;
+        }
+
+        for (int i=0; i<N; i++)
+        {
+            int tx = (X[i]+dx+L)%L;
+            int ty = (Y[i]+dy+L)%L;
             if (PP[ty][tx]==-1)
             {
-                b = xor64()%2;
+                int b;
+                if (M[EI[i]][0]<M[EI[i]][1])
+                    b = 0;
+                else
+                    b = 1;
                 PP[ty][tx] = b;
+                M[EI[i]][b]++;
             }
-            else
-                b = PP[ty][tx];
-            EI[i].push_back(b);
+            EI[i].push_back(PP[ty][tx]);
         }
         if (set<vector<int>>(EI.begin(), EI.end()).size()==N)
             break;
     }
+    cerr<<"BW: "<<EI[0].size()<<endl;
 
     vector<vector<int>> P(L, vector<int>(L, 500));
     for (int y=0; y<L; y++)
@@ -68,8 +84,24 @@ int main()
             if (PP[y][x]==-1)
                 P[y][x] = 500;
             else
-                P[y][x] = PP[y][x]*1000;
+                if (PP[y][x]==0)
+                    P[y][x] = max(0, 500-2*S);
+                else
+                    P[y][x] = min(1000, 500+2*S);
         }
+
+    for (int i=0; i<100; i++)
+    {
+        vector<vector<int>> T(L, vector<int>(L));
+        T.swap(P);
+
+        for (int y=0; y<L; y++)
+            for (int x=0; x<L; x++)
+                if (PP[y][x]==-1)
+                    P[y][x] = (T[(y+L-1)%L][x]+T[(y+1)%L][x]+T[y][(x+L-1)%L]+T[y][(x+1)%L]+2)/4;
+                else
+                    P[y][x] = T[y][x];
+    }
 
     for (int y=0; y<L; y++)
     {
@@ -81,11 +113,13 @@ int main()
     vector<int> E(N);
     for (int i=0; i<N; i++)
     {
+        int n = 10000/N/(int)DX.size();
+
         vector<int> B;
         for (int j=0; j<(int)DX.size(); j++)
         {
             vector<int> T;
-            for (int k=0; k<5; k++)
+            for (int k=0; k<n; k++)
             {
                 cout<<i<<" "<<DY[j]<<" "<<DX[j]<<endl;
                 int t;
@@ -93,7 +127,12 @@ int main()
                 T.push_back(t);
             }
             sort(T.begin(), T.end());
-            B.push_back(T[2]>500?1:0);
+            int t;
+            if (n%2==0)
+                t = (T[n/2-1]+T[n/2]);
+            else
+                t = T[n/2];
+            B.push_back(t>500?1:0);
         }
         int e = 0;
         for (int j=0; j<N; j++)
