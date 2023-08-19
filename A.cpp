@@ -299,15 +299,22 @@ public:
 // R は C のうちどれから発生したものかを予測する。
 int predict(int S, vector<int> C, vector<int> R)
 {
-    double pi = acos(-1.0);
+    static int initS = -1;
+    static vector<double> T;
+    static double rest;
 
-    vector<double> T(2001);
-    for (int i=-1000; i<=1000; i++)
-        T[i+1000] = 1./(sqrt(2*pi)*S)*exp(-(double)i*i/(2*S*S));
+    if (initS!=S)
+    {
+        double pi = acos(-1.0);
 
-    double rest = 1.0;
-    for (double t: T)
-        rest -= t;
+        T.resize(2001);
+        for (int i=-1000; i<=1000; i++)
+            T[i+1000] = 1./(sqrt(2*pi)*S)*exp(-(double)i*i/(2*S*S));
+
+        rest = 1.0;
+        for (double t: T)
+            rest -= t;
+    }
 
     vector<double> P(C.size());
     for (int r: R)
@@ -355,11 +362,16 @@ void solve(Comm *comm)
     vector<int> DX, DY;
     vector<vector<int>> EI(N);
     //  階調の分割数
-    int W = 5;
-    if (S>=324)
+    int W = 10;
+    if (S>=100)
+        W = 5;
+    if (S>=144)
+        W = 4;
+    if (S>=196)
         W = 3;
-    if (S>=529)
+    if (S>=256)
         W = 2;
+
     while (true)
     {
         int dx, dy;
@@ -406,7 +418,7 @@ void solve(Comm *comm)
             }
             EI[i].push_back(PP[ty][tx]);
         }
-        if (set<vector<int>>(EI.begin(), EI.end()).size()==N)
+        if (set<vector<int>>(EI.begin(), EI.end()).size()==N || DX.size()>=16)
             break;
     }
     //cerr<<"BW: "<<EI[0].size()<<endl;
@@ -474,7 +486,7 @@ int main(int argc, char **argv)
     /*
     for (int i=0; i<30; i++)
     {
-        for (int j=0; j<16; j++)
+        for (int j=0; j<32; j++)
         {
             CommParam comm(-1, -1, (i+1)*(i+1));
             solve(&comm);
