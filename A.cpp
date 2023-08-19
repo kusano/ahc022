@@ -331,7 +331,7 @@ int predict(int S, vector<int> C, vector<int> R)
             else
                 p = T[r-c+1000];
 
-            if (p==0.)
+            if (p<1e-100)
                 P[i] += -1e10;
             else
                 P[i] += log(p);
@@ -474,14 +474,14 @@ int main(int argc, char **argv)
     /*
     for (int i=0; i<30; i++)
     {
-        for (int j=0; j<10; j++)
+        for (int j=0; j<16; j++)
         {
             CommParam comm(-1, -1, (i+1)*(i+1));
             solve(&comm);
         }
     }
     return 0;
-    */
+    //*/
 
     Comm *comm;
 
