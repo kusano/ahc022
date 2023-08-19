@@ -14,6 +14,57 @@ int xor64() {
     return int(x&0x7fffffff);
 }
 
+class Comm
+{
+public:
+    virtual void get_param(int *L, int *N, int *S, vector<int> *X, vector<int> *Y) = 0;
+    virtual void place(vector<vector<int>> P) = 0;
+    virtual int measure(int i, int x, int y) = 0;
+    virtual void answer(vector<int> E) = 0;
+};
+
+// 提出用。
+class CommJudge: public Comm
+{
+public:
+    void get_param(int *L, int *N, int *S, vector<int> *X, vector<int> *Y)
+    {
+        cin>>*L>>*N>>*S;
+        X->resize(*N);
+        Y->resize(*N);
+        for (int i=0; i<*N; i++)
+            cin>>(*Y)[i]>>(*X)[i];
+    }
+
+    void place(vector<vector<int>> P)
+    {
+        int L = (int)P.size();
+        for (int y=0; y<L; y++)
+        {
+            for (int x=0; x<L; x++)
+                cout<<(x==0?"":" ")<<P[y][x];
+            cout<<endl;
+        }
+    }
+
+    int measure(int i, int x, int y)
+    {
+        cout<<i<<" "<<y<<" "<<x<<endl;
+        int m;
+        cin>>m;
+        return m;
+    }
+
+    void answer(vector<int> E)
+    {
+        int N = (int)E.size();
+        cout<<-1<<" "<<-1<<" "<<-1<<endl;
+        for (int e: E)
+            cout<<e<<endl;
+    }
+};
+
+// R は C のうちどれから発生したものかを予測する。
 int predict(int S, vector<int> C, vector<int> R)
 {
     double pi = acos(-1.0);
@@ -62,17 +113,11 @@ int predict(int S, vector<int> C, vector<int> R)
     return r;
 }
 
-int main()
+void solve(Comm *comm)
 {
-    //cout<<predict(4, {0, 250, 500, 750, 1000}, {251, 250, 240})<<endl;
-    //return 0;
-
     int L, N, S;
-    cin>>L>>N>>S;
-    cerr<<L<<" "<<N<<" "<<S<<endl;
-    vector<int> X(N), Y(N);
-    for (int i=0; i<N; i++)
-        cin>>Y[i]>>X[i];
+    vector<int> X, Y;
+    comm->get_param(&L, &N, &S, &X, &Y);
 
     vector<vector<int>> PP(L, vector<int>(L, -1));
     vector<int> DX, DY;
@@ -158,12 +203,7 @@ int main()
                     P[y][x] = T[y][x];
     }
 
-    for (int y=0; y<L; y++)
-    {
-        for (int x=0; x<L; x++)
-            cout<<(x==0?"":" ")<<P[y][x];
-        cout<<endl;
-    }
+    comm->place(P);
 
     vector<int> E(N);
     for (int i=0; i<N; i++)
@@ -176,9 +216,7 @@ int main()
             vector<int> T;
             for (int k=0; k<n; k++)
             {
-                cout<<i<<" "<<DY[j]<<" "<<DX[j]<<endl;
-                int t;
-                cin>>t;
+                int t = comm->measure(i, DX[j], DY[j]);
                 T.push_back(t);
             }
 
@@ -196,7 +234,12 @@ int main()
         E[i] = e;
     }
 
-    cout<<-1<<" "<<-1<<" "<<-1<<endl;
-    for (int e: E)
-        cout<<e<<endl;
+    comm->answer(E);
+}
+
+int main()
+{
+    CommJudge comm;
+
+    solve(&comm);
 }
