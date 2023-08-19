@@ -371,6 +371,8 @@ void solve(Comm *comm)
         W = 3;
     if (S>=256)
         W = 2;
+    //  区間の幅
+    int w = min(2*S, 1000/(W-1));
 
     while (true)
     {
@@ -427,11 +429,10 @@ void solve(Comm *comm)
     for (int y=0; y<L; y++)
         for (int x=0; x<L; x++)
         {
-            int w = 1000/(W-1);
             if (PP[y][x]==-1)
                 P[y][x] = 500;
             else
-                P[y][x] = PP[y][x]*w;
+                P[y][x] = PP[y][x]*w+(1000-(W-1)*w)/2;
         }
 
     for (int i=0; i<100; i++)
@@ -449,10 +450,20 @@ void solve(Comm *comm)
 
     comm->place(P);
 
+    vector<int> cand;
+    for (int k=0; k<W; k++)
+        cand.push_back(k*w+(1000-(W-1)*w)/2);
+
     vector<int> E(N);
     for (int i=0; i<N; i++)
     {
         int n = 10000/N/(int)DX.size();
+        if (S<=49)
+            n = min(12, n);
+        else if (S<=81)
+            n = min(24, n);
+        else
+            n = min(32, n);
 
         vector<int> B;
         for (int j=0; j<(int)DX.size(); j++)
@@ -463,11 +474,6 @@ void solve(Comm *comm)
                 int t = comm->measure(i, DX[j], DY[j]);
                 T.push_back(t);
             }
-
-            vector<int> cand;
-            int w = 1000/(W-1);
-            for (int k=0; k<W; k++)
-                cand.push_back(k*w);
             int b = predict(S, cand, T);
             B.push_back(b);
         }
