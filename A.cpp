@@ -25,6 +25,8 @@ int main()
     vector<vector<int>> PP(L, vector<int>(L, -1));
     vector<int> DX, DY;
     vector<vector<int>> EI(N);
+    //  階調の分割数
+    int W = 5;
     while (true)
     {
         int dx, dy;
@@ -46,7 +48,7 @@ int main()
 
         map<vector<int>, vector<int>> M;
         for (int i=0; i<N; i++)
-            M[EI[i]] = vector<int>(2);
+            M[EI[i]] = vector<int>(W);
 
         for (int i=0; i<N; i++)
         {
@@ -62,11 +64,10 @@ int main()
             int ty = (Y[i]+dy+L)%L;
             if (PP[ty][tx]==-1)
             {
-                int b;
-                if (M[EI[i]][0]<M[EI[i]][1])
-                    b = 0;
-                else
-                    b = 1;
+                int b = 0;
+                for (int j=0; j<W; j++)
+                    if (M[EI[i]][j]<M[EI[i]][b])
+                        b = j;
                 PP[ty][tx] = b;
                 M[EI[i]][b]++;
             }
@@ -81,13 +82,11 @@ int main()
     for (int y=0; y<L; y++)
         for (int x=0; x<L; x++)
         {
+            int w = 1000/(W-1);
             if (PP[y][x]==-1)
                 P[y][x] = 500;
             else
-                if (PP[y][x]==0)
-                    P[y][x] = max(0, 500-2*S);
-                else
-                    P[y][x] = min(1000, 500+2*S);
+                P[y][x] = 500+(PP[y][x]-W/2)*w;
         }
 
     for (int i=0; i<100; i++)
@@ -129,10 +128,15 @@ int main()
             sort(T.begin(), T.end());
             int t;
             if (n%2==0)
-                t = (T[n/2-1]+T[n/2]);
+                t = (T[n/2-1]+T[n/2])/2;
             else
                 t = T[n/2];
-            B.push_back(t>500?1:0);
+            int b = 0;
+            int w = 1000/(W-1);
+            for (int k=1; k<W; k++)
+                if (abs(t-(500+(k-W/2)*w))<abs(t-(500+(b-W/2)*w)))
+                    b = k;
+            B.push_back(b);
         }
         int e = 0;
         for (int j=0; j<N; j++)
