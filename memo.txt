@@ -1,1 +1,3 @@
 g++ -O2 -std=c++17 ../A.cpp -o ../A && for i in $(seq 0 9); do f=$(printf %04d.txt $i); echo $f; cargo run --release --bin tester ../A < in/${f} > ../out/${f}; done
+
+g++ -O2 -std=c++17 ../A.cpp -o ../A && for i in $(seq 0 9); do f=$(printf %04d.txt $i); echo -n "$f "; ../A aaa < in/${f} > ../out/${f}; done

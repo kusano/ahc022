@@ -64,6 +64,104 @@ public:
     }
 };
 
+// ファイルから読み込み。
+class CommFile: public Comm
+{
+    int L, N, S;
+    vector<int> X, Y;
+    vector<int> A;
+    vector<int> f;
+    vector<vector<int>> P;
+    long long place_cost = 0;
+    long long measure_cost = 0;
+    int measure_count = 0;
+
+public:
+    CommFile()
+    {
+        cin>>L>>N>>S;
+        X.resize(N);
+        Y.resize(N);
+        for (int i=0; i<N; i++)
+            cin>>Y[i]>>X[i];
+        A.resize(N);
+        for (int &a: A)
+            cin>>a;
+        f.resize(10000);
+        for (int &x: f)
+            cin>>x;
+    }
+
+    void get_param(int *L, int *N, int *S, vector<int> *X, vector<int> *Y)
+    {
+        *L = this->L;
+        *N = this->N;
+        *S = this->S;
+        *X = this->X;
+        *Y = this->Y;
+    }
+
+    void place(vector<vector<int>> P)
+    {
+        this->P = P;
+
+        for (int y=0; y<L; y++)
+        {
+            for (int x=0; x<L; x++)
+                cout<<(x==0?"":" ")<<P[y][x];
+            cout<<endl;
+        }
+
+        place_cost = 0;
+        for (int y=0; y<L; y++)
+            for (int x=0; x<L; x++)
+            {
+                int p = P[y][x];
+                int px = P[y][(x+1)%L];
+                int py = P[(y+1)%L][x];
+                place_cost += (p-px)*(p-px)+(p-py)*(p-py);
+            }
+    }
+
+    int measure(int i, int x, int y)
+    {
+        cout<<i<<" "<<y<<" "<<x<<endl;
+        int m = P[((Y[A[i]]+y)%L+L)%L][((X[A[i]]+x)%L+L)%L] + f[measure_count++];
+        m = max(0, min(1000, m));
+
+        measure_cost += 100*(10+abs(x)+abs(y));
+
+        return m;
+    }
+
+    void answer(vector<int> E)
+    {
+        int N = (int)E.size();
+        cout<<-1<<" "<<-1<<" "<<-1<<endl;
+        for (int e: E)
+            cout<<e<<endl;
+
+        int W = 0;
+        for (int i=0; i<N; i++)
+            if (A[i]!=E[i])
+                W++;
+
+        long long score = (long long)ceil(1e14*pow(.8, W)/(place_cost+measure_cost+1e5));
+
+        fprintf(
+            stderr,
+            "%2d %3d %3d %12lld %3d %12lld %12lld %5d\n",
+            L,
+            N,
+            S,
+            score,
+            W,
+            place_cost,
+            measure_cost,
+            measure_count);
+    }
+};
+
 // R は C のうちどれから発生したものかを予測する。
 int predict(int S, vector<int> C, vector<int> R)
 {
@@ -177,7 +275,7 @@ void solve(Comm *comm)
         if (set<vector<int>>(EI.begin(), EI.end()).size()==N)
             break;
     }
-    cerr<<"BW: "<<EI[0].size()<<endl;
+    //cerr<<"BW: "<<EI[0].size()<<endl;
 
     vector<vector<int>> P(L, vector<int>(L, 500));
     for (int y=0; y<L; y++)
@@ -237,9 +335,14 @@ void solve(Comm *comm)
     comm->answer(E);
 }
 
-int main()
+int main(int argc, char **argv)
 {
-    CommJudge comm;
+    Comm *comm;
 
-    solve(&comm);
+    if (argc==1)
+        comm = new CommJudge;
+    else
+        comm = new CommFile;
+
+    solve(comm);
 }
