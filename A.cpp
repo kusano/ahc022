@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <set>
 #include <map>
+#include <cmath>
 using namespace std;
 
 int xor64() {
@@ -13,8 +14,59 @@ int xor64() {
     return int(x&0x7fffffff);
 }
 
+int predict(int S, vector<int> C, vector<int> R)
+{
+    double pi = acos(-1.0);
+
+    vector<double> T(2001);
+    for (int i=-1000; i<=1000; i++)
+        T[i+1000] = 1./(sqrt(2*pi)*S)*exp(-(double)i*i/(2*S*S));
+
+    double rest = 1.0;
+    for (double t: T)
+        rest -= t;
+
+    vector<double> P(C.size());
+    for (int r: R)
+    {
+        for (int i=0; i<(int)C.size(); i++)
+        {
+            int c = C[i];
+            double p = 0.;
+            if (r==0)
+            {
+                p += rest/2.;
+                for (int j=0; j<=r-c+1000; j++)
+                    p += T[j];
+            }
+            else if (r==1000)
+            {
+                for (int j=r-c+1000; j<=2001; j++)
+                    p += T[j];
+                p += rest/2.;
+            }
+            else
+                p = T[r-c+1000];
+
+            if (p==0.)
+                P[i] += -1e10;
+            else
+                P[i] += log(p);
+        }
+    }
+
+    int r = 0;
+    for (int i=1; i<(int)P.size(); i++)
+        if (P[i]>P[r])
+            r = i;
+    return r;
+}
+
 int main()
 {
+    //cout<<predict(4, {0, 250, 500, 750, 1000}, {251, 250, 240})<<endl;
+    //return 0;
+
     int L, N, S;
     cin>>L>>N>>S;
     cerr<<L<<" "<<N<<" "<<S<<endl;
@@ -27,6 +79,10 @@ int main()
     vector<vector<int>> EI(N);
     //  階調の分割数
     int W = 5;
+    if (S>=324)
+        W = 3;
+    if (S>=529)
+        W = 2;
     while (true)
     {
         int dx, dy;
@@ -86,7 +142,7 @@ int main()
             if (PP[y][x]==-1)
                 P[y][x] = 500;
             else
-                P[y][x] = 500+(PP[y][x]-W/2)*w;
+                P[y][x] = PP[y][x]*w;
         }
 
     for (int i=0; i<100; i++)
@@ -125,17 +181,12 @@ int main()
                 cin>>t;
                 T.push_back(t);
             }
-            sort(T.begin(), T.end());
-            int t;
-            if (n%2==0)
-                t = (T[n/2-1]+T[n/2])/2;
-            else
-                t = T[n/2];
-            int b = 0;
+
+            vector<int> cand;
             int w = 1000/(W-1);
-            for (int k=1; k<W; k++)
-                if (abs(t-(500+(k-W/2)*w))<abs(t-(500+(b-W/2)*w)))
-                    b = k;
+            for (int k=0; k<W; k++)
+                cand.push_back(k*w);
+            int b = predict(S, cand, T);
             B.push_back(b);
         }
         int e = 0;
