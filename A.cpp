@@ -4,6 +4,7 @@
 #include <set>
 #include <map>
 #include <cmath>
+#include <utility>
 using namespace std;
 
 int xor64() {
@@ -20,7 +21,7 @@ public:
     virtual void get_param(int *L, int *N, int *S, vector<int> *X, vector<int> *Y) = 0;
     virtual void place(vector<vector<int>> P) = 0;
     virtual int measure(int i, int x, int y) = 0;
-    virtual void answer(vector<int> E) = 0;
+    virtual long long answer(vector<int> E) = 0;
 };
 
 // 提出用。
@@ -55,12 +56,14 @@ public:
         return m;
     }
 
-    void answer(vector<int> E)
+    long long answer(vector<int> E)
     {
         int N = (int)E.size();
         cout<<-1<<" "<<-1<<" "<<-1<<endl;
         for (int e: E)
             cout<<e<<endl;
+
+        return 0;
     }
 };
 
@@ -134,9 +137,8 @@ public:
         return m;
     }
 
-    void answer(vector<int> E)
+    long long answer(vector<int> E)
     {
-        int N = (int)E.size();
         cout<<-1<<" "<<-1<<" "<<-1<<endl;
         for (int e: E)
             cout<<e<<endl;
@@ -159,6 +161,138 @@ public:
             place_cost,
             measure_cost,
             measure_count);
+
+        return score;
+    }
+};
+
+// パラメタを与えて生成。
+class CommParam: public Comm
+{
+    int L, N, S;
+    vector<int> X, Y;
+    vector<int> A;
+    vector<int> f;
+    vector<vector<int>> P;
+    long long place_cost = 0;
+    long long measure_cost = 0;
+    int measure_count = 0;
+
+    int xor64() {
+        static uint64_t x = 88172645463345263ULL;
+        x ^= x<<13;
+        x ^= x>> 7;
+        x ^= x<<17;
+        return int(x&0x7fffffff);
+    }
+
+public:
+    CommParam(int L, int N, int S)
+    {
+        if (L==-1)
+            L = xor64()%41+10;
+        if (N==-1)
+            N = xor64()%41+60;
+        if (S==-1)
+        {
+            int s = xor64()%30+1;
+            S = s*s;
+        }
+        this->L = L;
+        this->N = N;
+        this->S = S;
+
+        set<pair<int, int>> XY;
+
+        for (int i=0; i<N; i++)
+        {
+            while (true)
+            {
+                int x = xor64()%L;
+                int y = xor64()%L;
+                if (XY.count({y, x})==0)
+                {
+                    XY.insert({y, x});
+                    break;
+                }
+            }
+        }
+        for (auto xy: XY)
+        {
+            X.push_back(xy.second);
+            Y.push_back(xy.first);
+        }
+
+        for (int i=0; i<N; i++)
+            A.push_back(i);
+        for (int i=0; i<N; i++)
+            swap(A[i], A[xor64()%(N-i)+i]);
+
+        double pi = acos(-1);
+        for (int i=0; i<10000; i++)
+        {
+            double x = (double)(xor64()+1)/0x80000001;
+            double y = (double)(xor64()+1)/0x80000001;
+            f.push_back((int)round(sqrt(-2*log(x))*cos(2*pi*y)*S));
+        }
+    }
+
+    void get_param(int *L, int *N, int *S, vector<int> *X, vector<int> *Y)
+    {
+        *L = this->L;
+        *N = this->N;
+        *S = this->S;
+        *X = this->X;
+        *Y = this->Y;
+    }
+
+    void place(vector<vector<int>> P)
+    {
+        this->P = P;
+
+        place_cost = 0;
+        for (int y=0; y<L; y++)
+            for (int x=0; x<L; x++)
+            {
+                int p = P[y][x];
+                int px = P[y][(x+1)%L];
+                int py = P[(y+1)%L][x];
+                place_cost += (p-px)*(p-px)+(p-py)*(p-py);
+            }
+    }
+
+    int measure(int i, int x, int y)
+    {
+        int m = P[((Y[A[i]]+y)%L+L)%L][((X[A[i]]+x)%L+L)%L] + f[measure_count++];
+        m = max(0, min(1000, m));
+
+        measure_cost += 100*(10+abs(x)+abs(y));
+
+        return m;
+    }
+
+    long long answer(vector<int> E)
+    {
+        int W = 0;
+        for (int i=0; i<N; i++)
+            if (A[i]!=E[i])
+                W++;
+
+        long long score = (long long)ceil(1e14*pow(.8, W)/(place_cost+measure_cost+1e5));
+
+        fprintf(
+            stderr,
+            "%2d %3d %3d %12lld %3d %12lld %12lld %5d\n",
+            L,
+            N,
+            S,
+            score,
+            W,
+            place_cost,
+            measure_cost,
+            measure_count);
+
+        return score;
     }
 };
 
@@ -190,7 +324,7 @@ int predict(int S, vector<int> C, vector<int> R)
             }
             else if (r==1000)
             {
-                for (int j=r-c+1000; j<=2001; j++)
+                for (int j=r-c+1000; j<=2000; j++)
                     p += T[j];
                 p += rest/2.;
             }
@@ -337,6 +471,18 @@ void solve(Comm *comm)
 
 int main(int argc, char **argv)
 {
+    /*
+    for (int i=0; i<30; i++)
+    {
+        for (int j=0; j<10; j++)
+        {
+            CommParam comm(-1, -1, (i+1)*(i+1));
+            solve(&comm);
+        }
+    }
+    return 0;
+    */
+
     Comm *comm;
 
     if (argc==1)
