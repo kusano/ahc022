@@ -383,6 +383,21 @@ void solve(Comm *comm)
     else
         qn = 32;
 
+    switch (S)
+    {
+    case   1: W = 10; w =  6; qn =  1; break;
+    case   4: W = 10; w = 16; qn =  3; break;
+    case   9: W = 10; w = 20; qn =  8; break;
+    case  16: W = 10; w = 28; qn = 14; break;
+    case  25: W = 10; w = 40; qn = 20; break;
+    case  36: W = 10; w = 50; qn = 24; break;
+    case  49: W = 10; w = 60; qn = 36; break;
+    case  64: W = 10; w = 60; qn = 48; break;
+    case  81: W = 10; w = 80; qn = 64; break;
+    }
+    if (w>1000/(W-1))
+        return;
+
     vector<vector<int>> PP;
     vector<int> DX, DY;
     vector<vector<int>> EI;
