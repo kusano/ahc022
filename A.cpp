@@ -5,7 +5,9 @@
 #include <map>
 #include <cmath>
 #include <utility>
+#include <chrono>
 using namespace std;
+using namespace std::chrono;
 
 int xor64() {
     static uint64_t x = 88172645463345263ULL;
@@ -354,13 +356,12 @@ int predict(int S, vector<int> C, vector<int> R)
 
 void solve(Comm *comm)
 {
+    system_clock::time_point start = system_clock::now();
+
     int L, N, S;
     vector<int> X, Y;
     comm->get_param(&L, &N, &S, &X, &Y);
 
-    vector<vector<int>> PP(L, vector<int>(L, -1));
-    vector<int> DX, DY;
-    vector<vector<int>> EI(N);
     //  階調の分割数
     int W = 10;
     if (S>=100)
@@ -373,79 +374,139 @@ void solve(Comm *comm)
         W = 2;
     //  区間の幅
     int w = min(2*S, 1000/(W-1));
+    //  1セルあたりの問い合わせ回数上限
+    int qn;
+    if (S<=49)
+        qn = 12;
+    else if (S<=81)
+        qn = 24;
+    else
+        qn = 32;
+
+    vector<vector<int>> PP;
+    vector<int> DX, DY;
+    vector<vector<int>> EI;
+    vector<vector<int>> P;
+    long long exp_score = 0;
 
     while (true)
     {
-        int dx, dy;
+        vector<vector<int>> PPtmp(L, vector<int>(L, -1));
+        vector<int> DXtmp, DYtmp;
+        vector<vector<int>> EItmp(N);
+
         while (true)
         {
-            dx = xor64()%21-10;
-            dy = xor64()%21-10;
-            if (abs(dx)+abs(dy)<=10) {
-                bool ok = true;
-                for (int i=0; i<(int)DX.size(); i++)
-                    if (dx==DX[i] && dy==DY[i])
-                        ok = false;
-                if (ok)
-                    break;
-            }
-        }
-        DX.push_back(dx);
-        DY.push_back(dy);
-
-        map<vector<int>, vector<int>> M;
-        for (int i=0; i<N; i++)
-            M[EI[i]] = vector<int>(W);
-
-        for (int i=0; i<N; i++)
-        {
-            int tx = (X[i]+dx+L)%L;
-            int ty = (Y[i]+dy+L)%L;
-            if (PP[ty][tx]!=-1)
-                M[EI[i]][PP[ty][tx]]++;
-        }
-
-        for (int i=0; i<N; i++)
-        {
-            int tx = (X[i]+dx+L)%L;
-            int ty = (Y[i]+dy+L)%L;
-            if (PP[ty][tx]==-1)
+            int dx, dy;
+            if (DXtmp.empty())
             {
-                int b = 0;
-                for (int j=0; j<W; j++)
-                    if (M[EI[i]][j]<M[EI[i]][b])
-                        b = j;
-                PP[ty][tx] = b;
-                M[EI[i]][b]++;
+                dx = 0;
+                dy = 0;
             }
-            EI[i].push_back(PP[ty][tx]);
-        }
-        if (set<vector<int>>(EI.begin(), EI.end()).size()==N || DX.size()>=16)
-            break;
-    }
-    //cerr<<"BW: "<<EI[0].size()<<endl;
-
-    vector<vector<int>> P(L, vector<int>(L, 500));
-    for (int y=0; y<L; y++)
-        for (int x=0; x<L; x++)
-        {
-            if (PP[y][x]==-1)
-                P[y][x] = 500;
             else
-                P[y][x] = PP[y][x]*w+(1000-(W-1)*w)/2;
+            {
+                while (true)
+                {
+                    dx = xor64()%21-10;
+                    dy = xor64()%21-10;
+                    if (abs(dx)+abs(dy)<=10) {
+                        bool ok = true;
+                        for (int i=0; i<(int)DXtmp.size(); i++)
+                            if (dx==DXtmp[i] && dy==DYtmp[i])
+                                ok = false;
+                        if (ok)
+                            break;
+                    }
+                }
+            }
+            DXtmp.push_back(dx);
+            DYtmp.push_back(dy);
+
+            map<vector<int>, vector<int>> M;
+            for (int i=0; i<N; i++)
+                M[EItmp[i]] = vector<int>(W);
+
+            for (int i=0; i<N; i++)
+            {
+                int tx = (X[i]+dx+L)%L;
+                int ty = (Y[i]+dy+L)%L;
+                if (PPtmp[ty][tx]!=-1)
+                    M[EItmp[i]][PPtmp[ty][tx]]++;
+            }
+
+            for (int i=0; i<N; i++)
+            {
+                int tx = (X[i]+dx+L)%L;
+                int ty = (Y[i]+dy+L)%L;
+                if (PPtmp[ty][tx]==-1)
+                {
+                    int b = 0;
+                    for (int j=0; j<W; j++)
+                        if (M[EItmp[i]][j]<M[EItmp[i]][b])
+                            b = j;
+                    PPtmp[ty][tx] = b;
+                    M[EItmp[i]][b]++;
+                }
+                EItmp[i].push_back(PPtmp[ty][tx]);
+            }
+            if (set<vector<int>>(EItmp.begin(), EItmp.end()).size()==N || DXtmp.size()>=16)
+                break;
         }
+        //cerr<<"BW: "<<EI[0].size()<<endl;
 
-    for (int i=0; i<100; i++)
-    {
-        vector<vector<int>> T(L, vector<int>(L));
-        T.swap(P);
-
+        vector<vector<int>> Ptmp(L, vector<int>(L, 500));
         for (int y=0; y<L; y++)
             for (int x=0; x<L; x++)
-                if (PP[y][x]==-1)
-                    P[y][x] = (T[(y+L-1)%L][x]+T[(y+1)%L][x]+T[y][(x+L-1)%L]+T[y][(x+1)%L]+2)/4;
+            {
+                if (PPtmp[y][x]==-1)
+                    Ptmp[y][x] = 500;
                 else
-                    P[y][x] = T[y][x];
+                    Ptmp[y][x] = PPtmp[y][x]*w+(1000-(W-1)*w)/2;
+            }
+
+        for (int i=0; i<8; i++)
+        {
+            vector<vector<int>> T(L, vector<int>(L));
+            T.swap(Ptmp);
+
+            for (int y=0; y<L; y++)
+                for (int x=0; x<L; x++)
+                    if (PPtmp[y][x]==-1)
+                        Ptmp[y][x] = (T[(y+L-1)%L][x]+T[(y+1)%L][x]+T[y][(x+L-1)%L]+T[y][(x+1)%L]+2)/4;
+                    else
+                        Ptmp[y][x] = T[y][x];
+        }
+
+        long long place_cost = 0;
+        for (int y=0; y<L; y++)
+            for (int x=0; x<L; x++)
+            {
+                int p = Ptmp[y][x];
+                int px = Ptmp[y][(x+1)%L];
+                int py = Ptmp[(y+1)%L][x];
+                place_cost += (p-px)*(p-px)+(p-py)*(p-py);
+            }
+        long long measure_cost = 0;
+        for (int i=0; i<(int)DXtmp.size(); i++)
+            measure_cost += 100*(10+abs(DXtmp[i])+abs(DYtmp[i]))*min(qn, 10000/N/(int)DXtmp.size())*N;
+        long long score = (long long)ceil(1e14/(place_cost+measure_cost+1e5));
+        if (DXtmp.size()==16)
+            score = 1;
+
+        if (score>exp_score)
+        {
+            exp_score = score;
+            PP = PPtmp;
+            DX = DXtmp;
+            DY = DYtmp;
+            EI = EItmp;
+            P = Ptmp;
+        }
+
+        system_clock::time_point now = system_clock::now();
+        double time = chrono::duration_cast<chrono::nanoseconds>(now-start).count()*1e-9;
+        if (time>3.0)
+            break;
     }
 
     comm->place(P);
@@ -457,13 +518,7 @@ void solve(Comm *comm)
     vector<int> E(N);
     for (int i=0; i<N; i++)
     {
-        int n = 10000/N/(int)DX.size();
-        if (S<=49)
-            n = min(12, n);
-        else if (S<=81)
-            n = min(24, n);
-        else
-            n = min(32, n);
+        int n = min(qn, 10000/N/(int)DX.size());
 
         vector<int> B;
         for (int j=0; j<(int)DX.size(); j++)
@@ -492,7 +547,7 @@ int main(int argc, char **argv)
     /*
     for (int i=0; i<30; i++)
     {
-        for (int j=0; j<32; j++)
+        for (int j=0; j<8; j++)
         {
             CommParam comm(-1, -1, (i+1)*(i+1));
             solve(&comm);
